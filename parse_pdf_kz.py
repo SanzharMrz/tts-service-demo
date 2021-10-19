@@ -13,11 +13,13 @@ from scipy.io.wavfile import write
 from pdfminer.high_level import extract_pages
 from pdfminer.layout import LTTextContainer
 
+from nltk import sent_tokenize
+
 
 class Config:
     file_to_lang = {'SCANNED - 4108_18411976.pdf': 'kz',
                     'SCANNED - 4110_353652508.pdf': 'kz',
-                    'Optimzed - tanirbergenova_a.a.berikbaeva_m.a._inzhenerlіk_mehanika_-_2__334400008.pdf_enc6407430.pdf': 'kz',
+                    'Optimzed - tanirbergenova_aaberikbaeva_ma_inzhenerlіk_mehanika_-_2__334400008_pdf_enc6407430': 'kz',
                     'Optimzed - sotsialnoe_gosudarstvo_teorija_metodologija_mehanizmy_93821869.pdf_enc9546740.pdf': 'ru',
                     'Optimzed - book_w3vlpeg_235482945.pdf': 'ru',
                     'Optimzed - book_664181550_138791945.pdf': 'en',
@@ -28,7 +30,7 @@ class Config:
                     'Not Optimized - book_717820121_346006649.pdf': 'en',
                     'Not Optimized - book_246240674.pdf_enc3941923.pdf': 'kz'}
     start = 1
-    end = 3
+    end = 100
     skip_pages = 2
     max_len = 140
     fs = 22050
@@ -51,6 +53,7 @@ def parse(args):
     files = filter(lambda x: 'ipynb' not in x, os.listdir(args.filepath))
 
     for filename in files:
+        filename = 'PDF_Examples/Optimzed - tanirbergenova_aaberikbaeva_ma_inzhenerlіk_mehanika_-_2__334400008_pdf_enc6407430.pdf'
         head, tail = os.path.split(filename)
         folder_name, _ = tail.split('.')
         book_json = {}
@@ -64,26 +67,46 @@ def parse(args):
                 break
             if page_num >= Config.skip_pages:
                 
-                parsing_results = []                
+                parsing_results = []   
+                
+                #collect raw text
+                raw_page_text = []
                 for element in page_layout:
                     if isinstance(element, LTTextContainer):
-                        coords = '_'.join(list(map(lambda x: str(round(x)), element.bbox)))
-                        response_filename = f'page_{page_num}_coords_{coords}.wav'
-                        text = parse_text(element.get_text())
-                        if len(text) > 3:
-                            response_json = {
-                                "bbox": element.bbox,
-                                "text": text,
-                                "filename": response_filename
-                            }
-                            with torch.no_grad():
-                                _, c_mel, *_ = text2speech(text.lower())
-                            wav = vocoder.inference(c_mel)
-                            parsing_results.append(response_json)
-                            save_path = os.path.join(folder_name, response_filename)
-                            write(save_path, Config.fs, wav.view(-1).detach().cpu().numpy())
+                        raw_text = element.get_text()
+                        clear_text = parse_text(raw_text)
+                        if len(clear_text) > 10:
+                            raw_page_text.append(raw_text)
+                            
+                # cut it to sentences            
+                sentences = list(filter(lambda sent: len(sent) > 10, sent_tokenize(' '.join(raw_page_text).replace('\n', ''), language="russian")))
+                
+                # clear cutted senteces
+                clear_sentences = list(map(lambda t: parse_text(t), sentences))
+                
+                # generate audios
+                parsing_results = []
+
+                for idx, sent in enumerate(clear_sentences):
+                    response_filename = f'page_{page_num}_sentid_{idx}.wav'
+                    response_json = {
+                        "page": page_num,
+                        "sent_id": idx,
+                        "text": sent,
+                        "filename": response_filename
+                    }
+                    with torch.no_grad():
+                                _, c_mel, *_ = text2speech(sent.lower())
+                            
+                    wav = vocoder.inference(c_mel)
+                    parsing_results.append(response_json)
+                    save_path = os.path.join(folder_name, response_filename)
+                    write(save_path, Config.fs, wav.view(-1).detach().cpu().numpy())
+                            
+                            
                 book_json[page_num] = parsing_results
         final_json[tail] = book_json
+        break
     json_filename = os.path.join(folder_name, f'{folder_name}.json')
     
     with open(json_filename, 'w') as f:

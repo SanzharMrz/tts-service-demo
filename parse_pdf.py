@@ -9,6 +9,8 @@ import torchaudio
 from pdfminer.high_level import extract_pages
 from pdfminer.layout import LTTextContainer
 
+from nltk import sent_tokenize
+
 
 class Config:
     file_to_lang = {
@@ -36,11 +38,11 @@ class Config:
     skip_pages = 2
     max_len = 130
 
-    
+
 def chunks(lst, n):
     for i in range(0, len(lst), n):
         yield lst[i:i + n]
-        
+
 
 def parse_text(text, language):
     parsed_text = re.sub(Config.lang_to_sub.get(language), ' ', text).strip()[:Config.max_len]
@@ -77,15 +79,15 @@ def get_audios(model, language, texts):
                                   device=Config.device)
     elif language == 'ru':
         audios = [model.apply_tts(texts=[text],
-                                 sample_rate=Config.sample_rate)[0] for text in texts]
+                                  sample_rate=Config.sample_rate)[0] for text in texts]
     return audios
+
 
 def parse(args):
     final_json = {}
     files = filter(lambda x: 'ipynb' not in x, os.listdir(args.filepath))
 
     for filename in files:
-        filename = "PDF_Examples/Optimzed - book_664181550_138791945.pdf"
         head, tail = os.path.split(filename)
         folder_name, _ = tail.split('.')
         language = Config.file_to_lang.get(tail)
@@ -102,7 +104,7 @@ def parse(args):
                 break
             if page_num >= Config.skip_pages:
 
-                #collect raw text
+                # collect raw text
                 raw_page_text = []
                 for element in page_layout:
                     if isinstance(element, LTTextContainer):
@@ -112,10 +114,11 @@ def parse(args):
                             raw_page_text.append(raw_text)
 
                 # cut it to sentences
-                tok_lang = 'russian' if language=='ru' else 'english'
-                sentences = list(filter(lambda sent: len(sent) > 10, sent_tokenize(' '.join(raw_page_text).replace('\n', ''), language=tok_lang')))
+                tok_lang = 'russian' if language == 'ru' else 'english'
+                sentences = list(filter(lambda x: len(x) > 10,
+                                        sent_tokenize(' '.join(raw_page_text).replace('\n', ''), language=tok_lang)))
 
-                # clear cutted senteces
+                # clear sentences
                 clear_sentences = list(map(lambda t: parse_text(t, language), sentences))
 
                 # generate audios
@@ -143,12 +146,11 @@ def parse(args):
                 book_json[page_num] = parsing_results
 
         final_json[tail] = book_json
-        #TODO remove this break for parsing whole folder
+        json_filename = os.path.join(folder_name, f'{folder_name}.json')
+        with open(json_filename, 'w') as f:
+            json.dump(final_json, f)
+        # TODO remove this break for parsing whole folder
         break
-
-    json_filename = os.path.join(folder_name, f'{folder_name}.json')
-    with open(json_filename, 'w') as f:
-        json.dump(final_json, f)
 
 
 if __name__ == '__main__':
@@ -156,4 +158,3 @@ if __name__ == '__main__':
     parser.add_argument("--filepath", default='PDF_Examples/', help="path to some pdf files")
     args = parser.parse_args()
     parse(args)
-

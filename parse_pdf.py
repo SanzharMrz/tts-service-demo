@@ -9,8 +9,7 @@ import torchaudio
 from pdfminer.high_level import extract_pages
 from pdfminer.layout import LTTextContainer
 
-from nltk import sent_tokenizeer
-
+from nltk import sent_tokenize
 
 class Config:
     file_to_lang = {
@@ -115,7 +114,8 @@ def parse(args):
 
                 # cut it to sentences
                 tok_lang = 'russian' if language=='ru' else 'english'
-                sentences = list(filter(lambda sent: len(sent) > 10, sent_tokenize(' '.join(raw_page_text).replace('\n', ''), language=tok_lang')))
+                sentences = list(filter(lambda sent: len(sent) > 10,
+                                        sent_tokenize(' '.join(raw_page_text).replace('\n', ''), language=tok_lang)))
 
                 # clear cutted senteces
                 clear_sentences = list(map(lambda t: parse_text(t, language), sentences))

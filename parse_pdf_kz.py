@@ -16,6 +16,9 @@ from pdfminer.layout import LTTextContainer
 from nltk import sent_tokenize
 
 
+NUM_CHUNKS = 6
+
+
 class Config:
     file_to_lang = {'SCANNED - 4108_18411976.pdf': 'kz',
                     'SCANNED - 4110_353652508.pdf': 'kz',
@@ -30,8 +33,8 @@ class Config:
                     'Not Optimized - book_717820121_346006649.pdf': 'en',
                     'Not Optimized - book_246240674.pdf_enc3941923.pdf': 'kz'}
     start = 1
-    end = 100
-    skip_pages = 2
+    end = 1000
+    skip_pages = 0
     max_len = 140
     fs = 22050
     
@@ -49,7 +52,6 @@ def parse_text(text):
 
 
 def parse(args):
-    final_json = {}
     files = filter(lambda x: 'ipynb' not in x, os.listdir(args.filepath))
 
     for filename in files:
@@ -65,52 +67,51 @@ def parse(args):
                 continue
             if page_num > Config.end:
                 break
-            if page_num >= Config.skip_pages:
-                
-                parsing_results = []   
-                
+            if not page_num >= Config.skip_pages:
+                continue
+
+            page_height = page_layout.height
+            chunks = [
+                {
+                    "audios": [],
+                    "ybox": ((NUM_CHUNKS - i - 1) / NUM_CHUNKS * page_height, (NUM_CHUNKS - i) / NUM_CHUNKS * page_height),
+                }
+                for i in range(NUM_CHUNKS)
+            ]
+
+            for current_chunk_num, chunk in enumerate(chunks):
                 #collect raw text
                 raw_page_text = []
                 for element in page_layout:
                     if isinstance(element, LTTextContainer):
-                        raw_text = element.get_text()
-                        clear_text = parse_text(raw_text)
-                        if len(clear_text) > 10:
-                            raw_page_text.append(raw_text)
-                            
-                # cut it to sentences            
+                        for line in element:
+                            chunk_num = int(((page_height - (line.bbox[1] + line.bbox[3]) / 2) / page_height) * NUM_CHUNKS)
+                            if chunk_num != current_chunk_num:
+                                continue
+                            raw_text = line.get_text()
+                            clear_text = parse_text(raw_text)
+                            if len(clear_text) > 10:
+                                raw_page_text.append(raw_text)
+
+                # cut it to sentences
                 sentences = list(filter(lambda sent: len(sent) > 10, sent_tokenize(' '.join(raw_page_text).replace('\n', ''), language="russian")))
-                
                 # clear cutted senteces
                 clear_sentences = list(map(lambda t: parse_text(t), sentences))
-                
-                # generate audios
-                parsing_results = []
-
                 for idx, sent in enumerate(clear_sentences):
                     response_filename = f'page_{page_num}_sentid_{idx}.wav'
-                    response_json = {
-                        "page": page_num,
-                        "sent_id": idx,
-                        "text": sent,
-                        "filename": response_filename
-                    }
                     with torch.no_grad():
-                                _, c_mel, *_ = text2speech(sent.lower())
-                            
+                        _, c_mel, *_ = text2speech(sent.lower())
                     wav = vocoder.inference(c_mel)
-                    parsing_results.append(response_json)
                     save_path = os.path.join(folder_name, response_filename)
                     write(save_path, Config.fs, wav.view(-1).detach().cpu().numpy())
-                            
-                            
-                book_json[page_num] = parsing_results
-        final_json[tail] = book_json
-        break
-    json_filename = os.path.join(folder_name, f'{folder_name}.json')
-    
-    with open(json_filename, 'w') as f:
-        json.dump(final_json, f)
+                    chunk['audios'].append(response_filename)
+            book_json[page_num] = {
+                "height": page_height,
+                "chunks": chunks
+            }
+        json_filename = os.path.join(folder_name, f'audio.json')
+        with open(json_filename, 'w') as f:
+            json.dump(book_json, f)
 
 
 if __name__ == '__main__':

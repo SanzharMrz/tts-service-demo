@@ -55,7 +55,7 @@ def parse(args):
     files = filter(lambda x: 'ipynb' not in x, os.listdir(args.filepath))
 
     for filename in files:
-        filename = 'PDF_Examples/Optimzed - tanirbergenova_aaberikbaeva_ma_inzhenerlіk_mehanika_-_2__334400008_pdf_enc6407430.pdf'
+        # filename = 'PDF_Examples/Optimzed - tanirbergenova_aaberikbaeva_ma_inzhenerlіk_mehanika_-_2__334400008_pdf_enc6407430.pdf'
         head, tail = os.path.split(filename)
         folder_name, _ = tail.split('.')
         book_json = {}
@@ -90,7 +90,7 @@ def parse(args):
                                 continue
                             raw_text = line.get_text()
                             clear_text = parse_text(raw_text)
-                            if len(clear_text) > 10:
+                            if len(clear_text) > 5:
                                 raw_page_text.append(raw_text)
 
                 # cut it to sentences
@@ -109,6 +109,7 @@ def parse(args):
                 "height": page_height,
                 "chunks": chunks
             }
+
         json_filename = os.path.join(folder_name, f'audio.json')
         with open(json_filename, 'w') as f:
             json.dump(book_json, f)

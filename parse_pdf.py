@@ -12,6 +12,9 @@ from pdfminer.layout import LTTextContainer
 from nltk import sent_tokenize
 
 
+NUM_CHUNKS = 6
+
+
 class Config:
     file_to_lang = {
         'SCANNED - 4108_18411976.pdf': 'kz',
@@ -34,12 +37,12 @@ class Config:
     sample_rate = 16_000
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     start = 1
-    end = 100
-    skip_pages = 2
+    end = 1000
+    skip_pages = 0
     max_len = 130
 
 
-def chunks(lst, n):
+def chunks_f(lst, n):
     for i in range(0, len(lst), n):
         yield lst[i:i + n]
 
@@ -84,7 +87,6 @@ def get_audios(model, language, texts):
 
 
 def parse(args):
-    final_json = {}
     files = filter(lambda x: 'ipynb' not in x, os.listdir(args.filepath))
 
     for filename in files:
@@ -102,28 +104,41 @@ def parse(args):
                 continue
             if page_num > Config.end:
                 break
-            if page_num >= Config.skip_pages:
+            if not page_num >= Config.skip_pages:
+                continue
 
+            page_height = page_layout.height
+            chunks = [
+                {
+                    "audios": [],
+                    "ybox": (
+                    (NUM_CHUNKS - i - 1) / NUM_CHUNKS * page_height, (NUM_CHUNKS - i) / NUM_CHUNKS * page_height),
+                }
+                for i in range(NUM_CHUNKS)
+            ]
+
+            for current_chunk_num, chunk in enumerate(chunks):
                 # collect raw text
                 raw_page_text = []
                 for element in page_layout:
                     if isinstance(element, LTTextContainer):
-                        raw_text = element.get_text()
-                        clear_text = parse_text(raw_text, language)
-                        if len(clear_text) > 10:
-                            raw_page_text.append(raw_text)
+                        for line in element:
+                            chunk_num = int(((page_height - (line.bbox[1] + line.bbox[3]) / 2) / page_height) * NUM_CHUNKS)
+                            if chunk_num != current_chunk_num:
+                                continue
+                            raw_text = line.get_text()
+                            clear_text = parse_text(raw_text, language)
+                            if len(clear_text) > 5:
+                                raw_page_text.append(raw_text)
 
                 # cut it to sentences
                 tok_lang = 'russian' if language == 'ru' else 'english'
-                sentences = list(filter(lambda x: len(x) > 10,
-                                        sent_tokenize(' '.join(raw_page_text).replace('\n', ''), language=tok_lang)))
-
+                sentences = list(filter(lambda x: len(x) > 10, sent_tokenize(' '.join(raw_page_text).replace('\n', ''), language=tok_lang)))
                 # clear sentences
                 clear_sentences = list(map(lambda t: parse_text(t, language), sentences))
-
                 # generate audios
                 audios = []
-                for chunk in chunks(clear_sentences, 5):
+                for chunk in chunks_f(clear_sentences, 5):
                     audios.extend(get_audios(model, language, chunk))
 
                 # create response jsons
@@ -137,6 +152,7 @@ def parse(args):
                         "filename": response_filename
                     }
                     parsing_results.append(response_json)
+                    chunk['audios'].append(response_filename)
 
                 # create audio wav files
                 for audio, json_ in zip(audios, parsing_results):
@@ -145,12 +161,9 @@ def parse(args):
 
                 book_json[page_num] = parsing_results
 
-        final_json[tail] = book_json
-        json_filename = os.path.join(folder_name, f'{folder_name}.json')
-        with open(json_filename, 'w') as f:
-            json.dump(final_json, f)
-        # TODO remove this break for parsing whole folder
-        break
+            json_filename = os.path.join(folder_name, f'audio.json')
+            with open(json_filename, 'w') as f:
+                json.dump(book_json, f)
 
 
 if __name__ == '__main__':

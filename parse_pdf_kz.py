@@ -55,7 +55,7 @@ def parse(args):
     files = filter(lambda x: 'ipynb' not in x, os.listdir(args.filepath))
 
     for filename in files:
-        # filename = 'PDF_Examples/Optimzed - tanirbergenova_aaberikbaeva_ma_inzhenerlіk_mehanika_-_2__334400008_pdf_enc6407430.pdf'
+        filename = 'PDF_Examples/Optimzed - tanirbergenova_aaberikbaeva_ma_inzhenerlіk_mehanika_-_2__334400008_pdf_enc6407430.pdf'
         head, tail = os.path.split(filename)
         folder_name, _ = tail.split('.')
         book_json = {}
@@ -97,22 +97,25 @@ def parse(args):
                 sentences = list(filter(lambda sent: len(sent) > 10, sent_tokenize(' '.join(raw_page_text).replace('\n', ''), language="russian")))
                 # clear cutted senteces
                 clear_sentences = list(map(lambda t: parse_text(t), sentences))
+                
                 for idx, sent in enumerate(clear_sentences):
-                    response_filename = f'page_{page_num}_sentid_{idx}.wav'
+                    response_filename = f'page_{page_num}_chunk_num_{current_chunk_num}_sentid_{idx}.wav'
                     with torch.no_grad():
                         _, c_mel, *_ = text2speech(sent.lower())
                     wav = vocoder.inference(c_mel)
                     save_path = os.path.join(folder_name, response_filename)
                     write(save_path, Config.fs, wav.view(-1).detach().cpu().numpy())
                     chunk['audios'].append(response_filename)
+                    
             book_json[page_num] = {
                 "height": page_height,
                 "chunks": chunks
             }
 
-        json_filename = os.path.join(folder_name, f'audio.json')
-        with open(json_filename, 'w') as f:
-            json.dump(book_json, f)
+            json_filename = os.path.join(folder_name, f'audio.json')
+            with open(json_filename, 'w') as f:
+                json.dump(book_json, f)
+        break
 
 
 if __name__ == '__main__':

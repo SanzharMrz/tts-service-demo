@@ -1,3 +1,24 @@
+import os
+import re
+import json
+import argparse
+from time import time
+
+import torch
+import torchaudio
+
+from pdfminer.high_level import extract_pages
+from pdfminer.layout import LTTextContainer
+
+from nltk import sent_tokenize
+
+
+def chunks(lst, n):
+    """Yield successive n-sized chunks from lst."""
+    for i in range(0, len(lst), n):
+        yield lst[i:i + n]
+
+
 class Config:
     file_to_lang = {
         'SCANNED - 4108_18411976.pdf': 'kz',

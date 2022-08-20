@@ -11,8 +11,8 @@ python3 parse_kz.py --folderpath /opt/demo_files # sorry but avoid "/" as last s
 
 # For Russian/English
 python3 parse.py --help
-python3 parse.py --folderpath /opt/demo_files_en --lang en
-python3 parse.py --folderpath /opt/demo_files_ru --lang ru
+python3 parse_ru_en.py --folderpath /opt/demo_files_en --lang en
+python3 parse_ru_en.py --folderpath /opt/demo_files_ru --lang ru
 
 ```
 

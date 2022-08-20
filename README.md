@@ -10,7 +10,7 @@ python3 parse_kz.py --help
 python3 parse_kz.py --folderpath /opt/demo_files # sorry but avoid "/" as last symbol, promise to fix it
 
 # For Russian/English
-python3 parse.py --help
+python3 parse_ru_en.py --help
 python3 parse_ru_en.py --folderpath /opt/demo_files_en --lang en
 python3 parse_ru_en.py --folderpath /opt/demo_files_ru --lang ru
 

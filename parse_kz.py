@@ -20,7 +20,8 @@ class Config:
 
 def get_args():
     parser = argparse.ArgumentParser(description="", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("--folderpath", default='/opt/demo_files', help="Path to files")
+    parser.add_argument("--folderpath", default='/opt/demo_files', 
+                                        help="Path to files, please avoid to use '/' at the end")
     args = parser.parse_args()
     return args
 
@@ -31,8 +32,8 @@ def parse_text(text):
 
 
 def parse(args):
-    files = map(lambda f: os.path.join(args.filepath, f), filter(lambda x: 'ipynb' not in x, os.listdir(args.filepath)))
-    head, tail = os.path.split(args.filepath)
+    files = map(lambda f: os.path.join(args.folderpath, f), filter(lambda x: 'ipynb' not in x, os.listdir(args.folderpath)))
+    head, tail = os.path.split(args.folderpath)
     folder_name = os.path.join(head, f'{tail}_parsed')
     if not os.path.exists(folder_name):
         os.mkdir(folder_name)

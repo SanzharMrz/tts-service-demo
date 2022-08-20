@@ -3,6 +3,7 @@
 # Usage
 
 ```bash
+# For Kazakh lang
 cd /opt/tts-service-demo
 python parse_kz.py --folderpath /opt/demo_files # sorry but avoid "/" as last symbol, promise to fix it
 ```

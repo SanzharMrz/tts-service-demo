@@ -20,7 +20,7 @@ class Config:
 
 def get_args():
     parser = argparse.ArgumentParser(description="", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("--filepath", default='/opt/demo_files', help="Path to files")
+    parser.add_argument("--folderpath", default='/opt/demo_files', help="Path to files")
     args = parser.parse_args()
     return args
 

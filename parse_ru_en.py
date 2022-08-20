@@ -20,31 +20,13 @@ def chunks(lst, n):
 
 
 class Config:
-    file_to_lang = {
-        'SCANNED - 4108_18411976.pdf': 'kz',
-        'SCANNED - 4110_353652508.pdf': 'kz',
-        'Optimzed - tanirbergenova_a.a.berikbaeva_m.a._inzhenerlіk_mehanika_-_2__334400008.pdf_enc6407430.pdf': 'kz',
-        'Optimzed - sotsialnoe_gosudarstvo_teorija_metodologija_mehanizmy_93821869_pdf_enc9546740.pdf': 'ru',
-        'Optimzed - book_w3vlpeg_235482945.pdf': 'ru',
-        'Optimzed - book_664181550_138791945.pdf': 'en',
-        'Optimzed - 5_999694706.pdf': 'ru',
-        'Optimzed - 104_860776228.pdf': 'ru',
-        'Not Optimized - filipov_etnichekie_protsessy_v_rossijskom_megapolise_i_juzhno__kazahstanskom_regio_PAApkoj.pdf': 'ru',
-        'Not Optimized - book_762283876.pdf_enc4442172.pdf': 'kz',
-        'Not Optimized - book_717820121_346006649.pdf': 'en',
-        'Not Optimized - book_246240674.pdf_enc3941923.pdf': 'kz'
-    }
     lang_to_sub = {'en': '[^A-Za-z]+',
                    'ru': '[^А-Яа-я]+'}
     speaker = {'ru': 'aidar_v2',
                'en': 'lj_16khz'}
     sample_rate = 16_000
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    start = 1
-    end = 50
-    skip_pages = 0
     max_len = 130
-    num_chunks = 6
 
 
 def chunks_f(lst, n):

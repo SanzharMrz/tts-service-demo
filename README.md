@@ -9,9 +9,11 @@ cd /opt/tts-service-demo
 python3 parse_kz.py --help
 python3 parse_kz.py --folderpath /opt/demo_files # sorry but avoid "/" as last symbol, promise to fix it
 
-# For Russian / English langs
-python3 parse_pdf.py --help
-pass
+# For Russian/English
+python3 parse.py --help
+python3 parse.py --folderpath /opt/demo_files_en --lang en
+python3 parse.py --folderpath /opt/demo_files_ru --lang ru
+
 ```
 
 Small guide of other stt-tts services installation

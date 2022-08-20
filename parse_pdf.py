@@ -91,87 +91,67 @@ def get_audios(model, language, texts):
     return audios
 
 
-def parse():
-    files = filter(lambda x: 'ipynb' not in x, os.listdir('PDF_Examples/'))
+def parse(args):
+    files = map(lambda f: os.path.join(args.folderpath, f), filter(lambda x: 'ipynb' not in x, os.listdir(args.folderpath)))
+    language = args.lang
+    head, tail = os.path.split(args.folderpath)
+    folder_name = os.path.join(head, f'{tail}_parsed')
+
+    if not os.path.exists(folder_name):
+        os.mkdir(folder_name)
+
+    folder_json = dict()
+
+    model = get_funcs(language)
+    tok_lang = 'russian' if language == 'ru' else 'english'
 
     for filename in files:
-        filename = 'PDF_Examples/Optimzed - book_664181550_138791945.pdf'
-        head, tail = os.path.split(filename)
-        folder_name, _ = tail.split('.')
-        language = Config.file_to_lang.get(tail)
-        model = get_funcs(language)
+        print(filename)
+        _, tail = os.path.split(filename)
+        file_prefix, _ = tail.split('.')
 
-        book_json = {}
+        with open(filename, 'r+') as file:
+            text = file.read()
+
+
         if not os.path.exists(folder_name):
             os.mkdir(folder_name)
 
-        for page_num, page_layout in enumerate(extract_pages(filename, password="")):
-            if page_num < Config.start:
-                continue
-            if page_num > Config.end:
-                break
-            if not page_num >= Config.skip_pages:
-                continue
 
-            page_height = page_layout.height
-            chunks = [
-                {
-                    "audios": [],
-                    "ybox": (
-                    (Config.num_chunks - i - 1) / Config.num_chunks * page_height, (Config.num_chunks - i) / Config.num_chunks * page_height),
-                }
-                for i in range(Config.num_chunks)
-            ]
+        # cut it to sentences
+        sentences = sent_tokenize(text, language=tok_lang)
+        # clear sentences
+        clear_sentences = list(map(lambda t: parse_text(t, language), sentences))
+                    
+        # create response
+        sub_files = []
+        audios = []
+        for chunk_ in chunks_f(clear_sentences, 5):
+            audios.extend(get_audios(model, language, chunk_))
 
-            for current_chunk_num, chunk in enumerate(chunks):
-                # collect raw text
-                raw_page_text = []
-                for element in page_layout:
-                    if isinstance(element, LTTextContainer):
-                        for line in element:
-                            chunk_num = int(((page_height - (line.bbox[1] + line.bbox[3]) / 2) / page_height) * Config.num_chunks)
-                            if chunk_num != current_chunk_num:
-                                continue
-                            raw_text = line.get_text()
-                            clear_text = parse_text(raw_text, language)
-                            if len(clear_text) > 5:
-                                raw_page_text.append(raw_text)
+        for sent_id, (sent, audio) in enumerate(zip(clear_sentences, audios)):
+            response_filename = f'{file_prefix}_sentid_{sent_id}.wav'
+            save_path = os.path.join(folder_name, response_filename)
+            torchaudio.save(save_path, audio.unsqueeze(0), Config.sample_rate)
+            sub_files.append(response_filename)
 
-                # cut it to sentences
-                tok_lang = 'russian' if language == 'ru' else 'english'
-                sentences = list(filter(lambda x: len(x) > 10, sent_tokenize(' '.join(raw_page_text).replace('\n', ''), language=tok_lang)))
-                # clear sentences
-                clear_sentences = list(map(lambda t: parse_text(t, language), sentences))
-                # generate audios
-                audios = []
-                for chunk_ in chunks_f(clear_sentences, 5):
-                    audios.extend(get_audios(model, language, chunk_))
 
-                # create response jsons
-                parsing_results = []
-                for sent_id, sent in enumerate(clear_sentences):
-                    response_filename = f'page_{page_num}_chunk_num_{current_chunk_num}_sentid_{sent_id}.wav'
-                    response_json = {
-                        "page": page_num,
-                        'chunk_num': current_chunk_num,
-                        "sent_id": sent_id,
-                        "text": sent,
-                        "filename": response_filename
-                    }
-                    parsing_results.append(response_json)
-                    chunk['audios'].append(response_filename)
+        folder_json[tail] = sub_files
+    json_filename = os.path.join(folder_name, f'audio.json')
+    with open(json_filename, 'w') as f:
+        json.dump(folder_json, f)
 
-                # create audio wav files
-                for audio, json_ in zip(audios, parsing_results):
-                    save_path = os.path.join(folder_name, json_['filename'])
-                    torchaudio.save(save_path, audio.unsqueeze(0), Config.sample_rate)
+def get_args():
+    parser = argparse.ArgumentParser(description="", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.add_argument("--folderpath", default='/opt/demo_files_en', 
+                                        help="Path to files, please avoid to use '/' at the end")
+    parser.add_argument("--lang", 
+                                default='ru',
+                                choices=['ru', 'en'],
+                                help='Choice you language to set model and tokenizers')
+    args = parser.parse_args()
+    return args
 
-            book_json[page_num] = {
-                                        "height": page_height,
-                                        "chunks": chunks
-                                    }
-
-            json_filename = os.path.join(folder_name, f'audio.json')
-            with open(json_filename, 'w') as f:
-                json.dump(book_json, f)
-        break
+if __name__ == '__main__':
+    args = get_args()
+    parse(args)

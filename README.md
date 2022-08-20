@@ -1,5 +1,12 @@
 # tts-service-demo
 
+# Usage
+
+```bash
+cd /opt/tts-service-demo
+python parse_kz.py --folderpath /opt/demo_files # sorry but avoid "/" as last symbol, promise to fix it
+```
+
 Small guide of other stt-tts services installation
 
 # NU SAIDA_KAZAKH_ASR [KAZAKH TTS]

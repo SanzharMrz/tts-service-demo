@@ -3,10 +3,14 @@
 # Usage
 
 ```bash
-# For Kazakh lang
 cd /opt/tts-service-demo
+
+# For Kazakh lang
 python parse_kz.py --help
 python parse_kz.py --folderpath /opt/demo_files # sorry but avoid "/" as last symbol, promise to fix it
+
+# For Russian / English langs
+pass
 ```
 
 Small guide of other stt-tts services installation

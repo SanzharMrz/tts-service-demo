@@ -136,4 +136,7 @@ def get_args():
 
 if __name__ == '__main__':
     args = get_args()
+    print('START PARSING ...')
     parse(args)
+    print('REACHED END OF FOLDER WHILE PARSING ...')
+    

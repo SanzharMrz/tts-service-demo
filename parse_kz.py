@@ -98,4 +98,7 @@ if __name__ == '__main__':
                         )
     text2speech.spc2wav = None
     args = get_args()
+    print('START PARSING ...')
     parse(args)
+    print('REACHED END OF FOLDER WHILE PARSING ...')
+    

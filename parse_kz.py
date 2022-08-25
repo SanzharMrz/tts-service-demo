@@ -10,13 +10,9 @@ from parallel_wavegan.utils import download_pretrained_model
 from parallel_wavegan.utils import load_model, read_hdf5
 from scipy.io.wavfile import write
 
-from nltk import sent_tokenize
+from util import (parse_text_kz, custom_sent_tokenize)
+from configs import Config_kz as Config
 
-
-class Config:
-    max_len = 140
-    fs = 22050
-    
 
 def get_args():
     parser = argparse.ArgumentParser(description="", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -25,10 +21,6 @@ def get_args():
     args = parser.parse_args()
     return args
 
-
-def parse_text(text):
-    parsed_text = re.sub('([^А-Яа-яa-zA-ZӘәҒғҚқҢңӨөҰұҮүІі-]|[^ ]*[*][^ ]*)', ' ', text).strip()[:Config.max_len]
-    return parsed_text
 
 
 def parse(args):
@@ -40,20 +32,20 @@ def parse(args):
 
     folder_json = dict()
     for filename in files:
-        print(filename)
+        print('PARSING: ', filename)
         _, tail = os.path.split(filename)
         file_prefix, _ = tail.split('.')
 
         sub_files = []
-
+        
         with open(filename, 'r+') as file:
-            text = file.readlines()
+            text = file.read()
+        # clear text
+        text = parse_text_kz(text)
 
         # cut it to sentences
-        sentences =  sent_tokenize(' '.join(text).replace('\n', ''), language="russian")
-        # clear cutted senteces
-        clear_sentences = list(map(lambda t: parse_text(t), sentences))
-        
+        clear_sentences =  custom_sent_tokenize(text, language="russian", max_len=Config.max_len)
+
         for idx, sent in enumerate(clear_sentences):
             response_filename = f'{file_prefix}_sentid_{idx}.wav'
 
@@ -63,7 +55,7 @@ def parse(args):
 
             save_path = os.path.join(folder_name, response_filename)
             write(save_path, Config.fs, wav.view(-1).detach().cpu().numpy())
-            sub_files.append(response_filename)
+            sub_files.append({response_filename: sent})
                     
         folder_json[tail] = sub_files
     json_filename = os.path.join(folder_name, f'audio.json')
@@ -74,17 +66,12 @@ def parse(args):
 if __name__ == '__main__':
     warnings.simplefilter('ignore')
     ## specify the path to vocoder's checkpoint
-    vocoder_checkpoint="/opt/espnet/egs2/Kazakh_TTS/tts1/exp/vocoder/checkpoint-400000steps.pkl"
-    vocoder = load_model(vocoder_checkpoint).to("cpu").eval()
+    vocoder = load_model(Config.vocoder_checkpoint).to("cpu").eval()
     vocoder.remove_weight_norm()
 
-    ## specify path to the main model(transformer/tacotron2/fastspeech) and its config file
-    config_file = "/opt/espnet/egs2/Kazakh_TTS/tts1/exp/tts_train_raw_char/config.yaml"
-    model_path  = "/opt/espnet/egs2/Kazakh_TTS/tts1/exp/tts_train_raw_char/train.loss.ave_5best.pth"
-
     text2speech = Text2Speech(
-                        config_file,
-                        model_path,
+                        Config.config_file,
+                        Config.model_path,
                         device="cpu",
                         # Only for Tacotron 2
                         threshold=0.5,

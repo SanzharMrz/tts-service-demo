@@ -2,41 +2,13 @@ import os
 import re
 import json
 import argparse
-from time import time
 
 import torch
 import torchaudio
 
-from pdfminer.high_level import extract_pages
-from pdfminer.layout import LTTextContainer
+from util import (parse_text, chunks_f, custom_sent_tokenize)
+from configs import Config_ru_en as Config
 
-from nltk import sent_tokenize
-
-
-def chunks(lst, n):
-    """Yield successive n-sized chunks from lst."""
-    for i in range(0, len(lst), n):
-        yield lst[i:i + n]
-
-
-class Config:
-    lang_to_sub = {'en': '[^A-Za-z]+',
-                   'ru': '[^А-Яа-я]+'}
-    speaker = {'ru': 'aidar_v2',
-               'en': 'lj_16khz'}
-    sample_rate = 16_000
-    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    max_len = 130
-
-
-def chunks_f(lst, n):
-    for i in range(0, len(lst), n):
-        yield lst[i:i + n]
-
-
-def parse_text(text, language):
-    parsed_text = re.sub(Config.lang_to_sub.get(language), ' ', text).strip()[:Config.max_len]
-    return parsed_text
 
 
 def get_funcs(language):
@@ -88,22 +60,20 @@ def parse(args):
     tok_lang = 'russian' if language == 'ru' else 'english'
 
     for filename in files:
-        print(filename)
+        print('PARSING: ', filename)
         _, tail = os.path.split(filename)
         file_prefix, _ = tail.split('.')
 
         with open(filename, 'r+') as file:
             text = file.read()
-
-
         if not os.path.exists(folder_name):
             os.mkdir(folder_name)
 
+        # parse it
+        text = parse_text(text, language)
 
         # cut it to sentences
-        sentences = sent_tokenize(text, language=tok_lang)
-        # clear sentences
-        clear_sentences = list(map(lambda t: parse_text(t, language), sentences))
+        clear_sentences = custom_sent_tokenize(text, language=tok_lang, max_len=Config.max_len)
                     
         # create response
         sub_files = []
@@ -115,7 +85,7 @@ def parse(args):
             response_filename = f'{file_prefix}_sentid_{sent_id}.wav'
             save_path = os.path.join(folder_name, response_filename)
             torchaudio.save(save_path, audio.unsqueeze(0), Config.sample_rate)
-            sub_files.append(response_filename)
+            sub_files.append({response_filename: sent})
 
 
         folder_json[tail] = sub_files
@@ -135,6 +105,8 @@ def get_args():
     return args
 
 if __name__ == '__main__':
+    device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+    Config.device = device 
     args = get_args()
     print('START PARSING ...')
     parse(args)

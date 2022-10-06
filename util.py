@@ -20,7 +20,8 @@ def chunks_f(lst, n):
 
 
 def r(t):
-    return t.replace(".", "").replace("?", "").replace("!", "").replace("  ", " ").replace("  ", " ").replace("  ", " ").replace("  ", " ").replace("  ", " ")
+    return t.replace(".", "").replace("?", "").replace("!", "").replace("  ", " ").replace("  ", " ").replace("  ", " ").replace(
+        "  ", " ").replace("  ", " ")
 
 
 def custom_sent_tokenize(text, language, max_len):
@@ -32,14 +33,10 @@ def custom_sent_tokenize(text, language, max_len):
         words = [r(w).strip() for w in words if r(w).strip()]
         while len(words):
             word = words.pop()
-
             if len(chunk + ' ' + word) > max_len:
                 res.append(chunk.strip())
                 chunk = ''
-
             chunk += ' '
             chunk += word
-
         res.append(chunk.strip())
-
     return res

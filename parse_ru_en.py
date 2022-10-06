@@ -1,14 +1,12 @@
+import argparse
+import json
 import os
 import re
-import json
-import argparse
-
 import torch
 import torchaudio
 
-from util import (parse_text, chunks_f, custom_sent_tokenize)
 from configs import Config_ru_en as Config
-
+from util import (parse_text, chunks_f, custom_sent_tokenize)
 
 
 def get_funcs(language):
@@ -46,7 +44,8 @@ def get_audios(model, language, texts):
 
 
 def parse(args):
-    files = map(lambda f: os.path.join(args.folderpath, f), filter(lambda x: 'ipynb' not in x, os.listdir(args.folderpath)))
+    files = map(lambda f: os.path.join(args.folderpath, f),
+                filter(lambda x: 'ipynb' not in x, os.listdir(args.folderpath)))
     language = args.lang
     head, tail = os.path.split(args.folderpath)
     folder_name = os.path.join(head, f'{tail}_parsed')
@@ -74,7 +73,7 @@ def parse(args):
 
         # cut it to sentences
         clear_sentences = custom_sent_tokenize(text, language=tok_lang, max_len=Config.max_len)
-                    
+
         # create response
         sub_files = []
         audios = []
@@ -87,28 +86,28 @@ def parse(args):
             torchaudio.save(save_path, audio.unsqueeze(0), Config.sample_rate)
             sub_files.append({response_filename: sent})
 
-
         folder_json[tail] = sub_files
     json_filename = os.path.join(folder_name, f'audio.json')
     with open(json_filename, 'w') as f:
         json.dump(folder_json, f)
 
+
 def get_args():
     parser = argparse.ArgumentParser(description="", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("--folderpath", default='/opt/demo_files_en', 
-                                        help="Path to files, please avoid to use '/' at the end")
-    parser.add_argument("--lang", 
-                                default='ru',
-                                choices=['ru', 'en'],
-                                help='Choice you language to set model and tokenizers')
+    parser.add_argument("--folderpath", default='/opt/demo_files_en',
+                        help="Path to files, please avoid to use '/' at the end")
+    parser.add_argument("--lang",
+                        default='ru',
+                        choices=['ru', 'en'],
+                        help='Choice you language to set model and tokenizers')
     args = parser.parse_args()
     return args
 
+
 if __name__ == '__main__':
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
-    Config.device = device 
+    Config.device = device
     args = get_args()
     print('START PARSING ...')
     parse(args)
     print('REACHED END OF FOLDER WHILE PARSING ...')
-    

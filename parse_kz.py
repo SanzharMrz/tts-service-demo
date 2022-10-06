@@ -48,6 +48,9 @@ def parse(args):
         for idx, sent in enumerate(clear_sentences):
             response_filename = f'{file_prefix}_sentid_{idx}.wav'
 
+            if not sent.strip():
+                sent = "Бос өріс"
+
             with torch.no_grad():
                 inference = text2speech(sent.lower())
                 wav = vocoder.inference(inference['feat_gen'])

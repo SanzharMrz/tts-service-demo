@@ -31,6 +31,12 @@ def get_funcs(language):
 
 def get_audios(model, language, texts):
     audios = []
+    for i in range(len(texts)):
+        if not texts[i].strip():
+            if language == 'en':
+                texts[i] = "Empty field"
+            else:
+                texts[i] = "Пустое поле"
     if language == 'en':
         audios = Config.apply_tts(texts=texts,
                                   model=model,
@@ -38,8 +44,7 @@ def get_audios(model, language, texts):
                                   symbols=Config.symbols,
                                   device=Config.device)
     elif language == 'ru':
-        audios = [model.apply_tts(texts=[text],
-                                  sample_rate=Config.sample_rate)[0] for text in texts]
+        audios = [model.apply_tts(texts=[text], sample_rate=Config.sample_rate)[0] for text in texts]
     return audios
 
 

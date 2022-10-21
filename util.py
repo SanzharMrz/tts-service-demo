@@ -10,7 +10,7 @@ def parse_text(text, language):
 
 
 def parse_text_kz(text):
-    parsed_text = re.sub('([^А-Яа-яa-zA-ZӘәҒғҚқҢңӨөҰұҮүІі!?.-]|[^ ]*[*][^ ]*)', ' ', text).strip()
+    parsed_text = re.sub('([^А-Яа-яa-zA-ZӘәҒғҚқҢңӨөҰұҮүІі!?.]|[^ ]*[*][^ ]*)', ' ', text).strip()
     return parsed_text
 
 

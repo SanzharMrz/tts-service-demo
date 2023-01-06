@@ -10,7 +10,7 @@ def parse_text(text, language):
 
 
 def parse_text_kz(text):
-    parsed_text = re.sub('([^А-Яа-яa-zA-ZӘәҒғҚқҢңӨөҰұҮүІі!?.]|[^ ]*[*][^ ]*)', ' ', text).strip()
+    parsed_text = re.sub('([^А-Яа-яa-zA-ZӘәҒғҚқҢңӨөҰұҮүІі?.,!:;(]|[^ ]*[*][^ ]*)', ' ', text).strip()
     return parsed_text
 
 
@@ -25,9 +25,11 @@ def r(t):
 
 
 def custom_sent_tokenize(text, language, max_len):
-    sents = sent_tokenize(text)
+    sents = re.split('[?.,!:;(]', text)
     res = []
     for sent in sents:
+        if not sent.strip():
+            continue
         chunk = ''
         words = word_tokenize(sent, language=language)[::-1]
         words = [r(w).strip() for w in words if r(w).strip()]

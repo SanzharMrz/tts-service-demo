@@ -8,8 +8,8 @@ class Config_kz:
 
 class Config_ru_en:
     lang_to_sub = {
-        'en': '[^A-Za-zА-Яа-я?!.]+',
-        'ru': '[^А-Яа-яA-Za-z?!.]+'
+        'en': '[^A-Za-zА-Яа-я?.,!:;(]+',
+        'ru': '[^А-Яа-яA-Za-z?.,!:;(]+'
     }
     speaker = {
         'ru': 'aidar_v2',

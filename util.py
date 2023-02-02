@@ -25,7 +25,13 @@ def r(t):
 
 
 def custom_sent_tokenize(text, language, max_len):
-    sents = re.split('[?.,!:;(]', text)
+    ss = re.split('([?.,!:;(])', text)
+    sents = []
+    for i in range(0, len(ss), 2):
+        if i + 1 < len(ss):
+            sents.append(ss[i] + ss[i + 1])
+        else:
+            sents.append(ss[i])
     res = []
     for sent in sents:
         if not sent.strip():

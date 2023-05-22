@@ -78,6 +78,8 @@ def parse(args):
 
         # cut it to sentences
         clear_sentences = custom_sent_tokenize(text, language=tok_lang, max_len=Config.max_len)
+        # Only leave sentences with at least 2 alphabetic characters
+        clear_sentences = [sent for sent in clear_sentences if len(re.findall(r'[a-zA-Zа-яА-Я]', sent)) > 1]
 
         # create response
         sub_files = []
